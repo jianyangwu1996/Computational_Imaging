@@ -14,7 +14,7 @@ def ift(pattern):
 
 def normalize(arr):
     temp = np.abs(arr).max()
-    arr /= temp
+    arr = arr / temp
     return arr
 
 
@@ -28,6 +28,36 @@ def nrmse(arr1, arr2):
 
     res = np.sqrt(np.mean(np.square(np.sqrt(arr2) - np.abs(arr1)))) / np.mean(np.sqrt(arr2))
     return res
+
+
+def hsv_convert(img):
+    """
+    use phase and intensity to produce a hsv image and then convert to rgb image
+    :param img: a complex image which will be converted to hsv representation
+    :return: a rgb image
+    """
+
+    # produce the hsv image
+    h = np.angle(img)
+    h = np.rad2deg(h) / 360
+    h[h < 0] = h[h < 0] + 1
+    s = np.ones(img.shape)
+    v = np.abs(img)
+
+    # convert the hsv image to rgb image
+    hi = (h * 6.0).astype('uint8')
+    f = (h * 6.0) - hi
+    p = v * (1.0 - s)
+    q = v * (1.0 - s * f)
+    t = v * (1.0 - s * (1.0 - f))
+    conditions = [s == 0.0, hi == 1, hi == 2, hi == 3, hi == 4, hi == 5]
+
+    r = np.select(conditions, [v, q, p, p, t, v], default=v)
+    g = np.select(conditions, [v, v, v, q, p, p], default=t)
+    b = np.select(conditions, [v, p, t, v, v, q], default=p)
+
+    rgb = np.array([r, g, b]).transpose((1, 2, 0))
+    return rgb
 
 
 def circ_aperture(shape: tuple, radius: float = 0.5):

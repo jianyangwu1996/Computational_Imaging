@@ -100,13 +100,14 @@ def illumination_beam(beam_shape: tuple, beam_radius: float, kernel_shape: tuple
     return probe
 
 
-def mesh(object_size: tuple, radius, overlap: float, n: int):
+def mesh(object_size: tuple, radius, overlap: float, n: int, error: int):
     """
     define the position of scan points with mesh-grid
     :param object_size: the size of scanned object
     :param radius: the radius of illumination beam
     :param overlap: overlap rate
     :param n: the number of scan points per row
+    :param error: the maximum position error
     :return: the positions of scann points
     """
 
@@ -115,6 +116,11 @@ def mesh(object_size: tuple, radius, overlap: float, n: int):
     start = (object_size[1] - x.max()) // 2
     x += start
     X, Y = np.meshgrid(x, x)
+    if error != 0:
+        xerror = np.random.randint(-error, error+1, size=X.shape)
+        X += xerror
+        yerror = np.random.randint(-error, error+1, size=X.shape)
+        Y += yerror
     positions = list(zip(X.flat, Y.flat))
 
     return positions
