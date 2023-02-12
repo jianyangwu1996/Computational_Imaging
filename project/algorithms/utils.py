@@ -30,6 +30,11 @@ def nrmse(arr1, arr2):
     return res
 
 
+def corr(a, b):
+    """Cross-correlation coefficient. """
+    return np.corrcoef(a.flat, b.flat)[0, 1]
+
+
 def hsv_convert(img):
     """
     use phase and intensity to produce a hsv image and then convert to rgb image
