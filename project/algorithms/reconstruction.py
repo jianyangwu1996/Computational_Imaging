@@ -65,7 +65,7 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
     else:
         guess_obj = np.array(guess_obj, dtype="complex")
 
-    K, L = guess_probe.shape
+    (K, L) = guess_probe.shape
     recon_obj = guess_obj.copy()
     recon_obj_pad = np.pad(recon_obj, ((K // 2, K // 2), (L // 2, L // 2)))
 
@@ -94,7 +94,6 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
             recon_obj_slice = update_obj(obj_scanned, guess_probe, diff_psi, learning_rate=a)
             recon_obj_pad[y:y + K, x:x + L] = recon_obj_slice
             guess_probe = update_probe(guess_probe, guess_obj_old, diff_psi, learning_rate=b)
-            print(i)
 
             loss_vals.append(nrmse(np.abs(PSI), pattern))
         loss.append(np.mean(loss_vals))
@@ -135,7 +134,7 @@ def epie_unknown_pos(patterns, guess_probe, guess_positions, shape_obj, guess_ob
         guess_obj = np.array(guess_obj, dtype="complex")
 
     (K, L) = guess_probe.shape
-    obj_pad = np.pad(guess_obj, ((K // 2, K // 2+1), (L // 2, L // 2+1)))
+    obj_pad = np.pad(guess_obj, ((K // 2, K // 2), (L // 2, L // 2)))
     n_IPs = 1
     # e = [(0, 0)] * len(guess_positions)
     # beta = list[beta] * len(guess_positions)
@@ -155,7 +154,7 @@ def epie_unknown_pos(patterns, guess_probe, guess_positions, shape_obj, guess_ob
             phase_Psi = np.exp(1j * np.angle(Psi))
             Psi_corrected = np.sqrt(pattern) * phase_Psi
             psi_corrected = ift(Psi_corrected)
-            NRMSE = nrmse(pattern, np.abs(Psi))
+            NRMSE = nrmse(np.abs(Psi), pattern)
 
             # update the object and probe functions
             diff_psi = psi_corrected - psi
@@ -165,64 +164,64 @@ def epie_unknown_pos(patterns, guess_probe, guess_positions, shape_obj, guess_ob
             guess_probe = update_probe(guess_probe, temp_obj, diff_psi, learning_rate=b)
 
             # revise scann positions
-            cc = correlate(temp_obj, obj_scanned, mode='same', method='fft')
-            dy, dx = np.where(cc == cc.max())
-            dy, dx = dy[0] - K // 2, dx[0] - L // 2
-            y += dy
-            x += dx
-            if y < 0:
-                y = 0
-            elif y > guess_obj.shape[0]:
-                y = guess_obj.shape[0]
-
-            if x < 0:
-                x = 0
-            elif x > guess_obj.shape[1]:
-                x = guess_obj.shape[1]
-
-            # position += beta[i] * e[i]
-            guess_positions[i] = (y, x)
-            pos_shift = np.sqrt(dx**2 + dy**2)
+            # cc = correlate(temp_obj, obj_scanned, mode='same', method='fft')
+            # dy, dx = np.where(cc == cc.max())
+            # dy, dx = dy[0] - K // 2, dx[0] - L // 2
+            # y += dy
+            # x += dx
+            # if y < 0:
+            #     y = 0
+            # elif y > guess_obj.shape[0]:
+            #     y = guess_obj.shape[0]
+            #
+            # if x < 0:
+            #     x = 0
+            # elif x > guess_obj.shape[1]:
+            #     x = guess_obj.shape[1]
+            #
+            # # position += beta[i] * e[i]
+            # guess_positions[i] = (y, x)
+            # pos_shift = np.sqrt(dx**2 + dy**2)
             NRMSEs.append(NRMSE)
-            pos_shifts.append(pos_shift)
+            # pos_shifts.append(pos_shift)
         loss.append(NRMSEs)
-        maxshift = max(pos_shifts)
+        # maxshift = max(pos_shifts)
         # k =              # cross-correlation coefficient between two sets of successive retrieved position errors
         # beta = update_beata()   # k>0.3 beta * 1.1, k<-0.3 beta * 0.9
 
-        if (n + 1 > 2) & (maxshift < delta) & (n + 1 > n_IPs + nu):
-            n_IPs = n
-            IPs_index = np.where(NRMSEs > (min(NRMSEs) + tau))
-            IPs = np.array(guess_positions)[IPs_index]
-            CPs_index = np.where(NRMSEs <= (min(NRMSEs) + tau))
-            CPs = np.array(guess_positions)[CPs_index]
-
-            intensity_IPs = []
-            for IP in IPs:
-                x = IP[1]
-                y = IP[0]
-                obj_scanned = obj_pad[y:y + K, x:x + L]
-                psi = obj_scanned * guess_probe
-                Psi = ft(psi)
-                intensity_IPs.append(Psi)
-
-            intensity_CPs = []
-            for CP in CPs:
-                x = CP[1]
-                y = CP[0]
-                obj_scanned = obj_pad[y:y + K, x:x + L]
-                psi = obj_scanned * guess_probe
-                Psi = ft(psi)
-                intensity_CPs.append(Psi)
-
-            for i, iip in zip(IPs_index[0], intensity_IPs):
-                IP = guess_positions[i]
-                CCs = []
-                for icp in intensity_CPs:
-                    CC = corr(iip, icp)
-                    CCs.append(CC)
-                index = np.argmax(CCs)
-                guess_positions[i] = CPs[index]
+        # if (n + 1 > 2) & (maxshift < delta) & (n + 1 > n_IPs + nu):
+        #     n_IPs = n
+        #     IPs_index = np.where(NRMSEs > (min(NRMSEs) + tau))
+        #     IPs = np.array(guess_positions)[IPs_index]
+        #     CPs_index = np.where(NRMSEs <= (min(NRMSEs) + tau))
+        #     CPs = np.array(guess_positions)[CPs_index]
+        #
+        #     intensity_IPs = []
+        #     for IP in IPs:
+        #         x = IP[1]
+        #         y = IP[0]
+        #         obj_scanned = obj_pad[y:y + K, x:x + L]
+        #         psi = obj_scanned * guess_probe
+        #         Psi = ft(psi)
+        #         intensity_IPs.append(Psi)
+        #
+        #     intensity_CPs = []
+        #     for CP in CPs:
+        #         x = CP[1]
+        #         y = CP[0]
+        #         obj_scanned = obj_pad[y:y + K, x:x + L]
+        #         psi = obj_scanned * guess_probe
+        #         Psi = ft(psi)
+        #         intensity_CPs.append(Psi)
+        #
+        #     for i, iip in zip(IPs_index[0], intensity_IPs):
+        #         IP = guess_positions[i]
+        #         CCs = []
+        #         for icp in intensity_CPs:
+        #             CC = corr(iip, icp)
+        #             CCs.append(CC)
+        #         index = np.argmax(CCs)
+        #         guess_positions[i] = CPs[index]
             # beta = np.square(loss[n] / np.min(loss[n]) + alpha)
 
     guess_obj = obj_pad[K // 2:-K // 2 + 2, L // 2:-L // 2 + 2]
