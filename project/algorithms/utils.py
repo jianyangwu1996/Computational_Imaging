@@ -2,9 +2,9 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 
-def ft(image):
+def ft(image, s=None):
     """fft + fftshift for a give image"""
-    return np.fft.fftshift(np.fft.fft2(image))
+    return np.fft.fftshift(np.fft.fft2(image, s))
 
 
 def ift(pattern):
@@ -34,6 +34,27 @@ def corr(a, b):
     """Cross-correlation coefficient. """
     return np.corrcoef(a.flat, b.flat)[0, 1]
 
+
+def fft_correlate(arr1, arr2, kai=1):
+    m, n = arr1.shape
+    M, N = 2**(int(np.log2(m))+1), 2**(int(np.log2(n))+1)
+    fimg1_con = np.conj(ft(arr1, [M, N]))
+    fimg2 = ft(arr2, [M, N])
+    Fcc1 = fimg1_con * fimg2
+    Fcc_pad = np.zeros((M * kai, N * kai), dtype='complex')
+    Fcc_pad[64 * (kai - 1):M + 64 * (kai - 1), 64 * (kai - 1):64 * (kai - 1) + N] = Fcc1
+    fcc = ift(Fcc_pad).real
+    temp = np.hstack((fcc, fcc))
+    temp = np.vstack((temp, temp))
+    if m%2 == 1:
+        fcc = temp[(M - m // 2) * kai:((M - m // 2) * kai + m * kai),
+              (N - n // 2) * kai:((N - n // 2) * kai + n * kai)]
+    else:
+        fcc = temp[(M - m // 2 + 1) * kai:((M - m // 2 + 1) * kai + m * kai),
+              (N - n // 2 + 1) * kai:((N - n // 2 + 1) * kai + n * kai)]
+
+    fcc = fcc[::-1, ::-1]
+    return fcc
 
 def hsv_convert(img):
     """
