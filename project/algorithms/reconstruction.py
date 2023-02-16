@@ -111,6 +111,63 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
         return recon_obj, guess_probe
 
 
+def TransRefinement(im1, im2, integer_skip=False):
+    """
+    This is function is guided by Prof. Dr. Fucai Zhang
+    :param im1:
+    :param im2:
+    :param integer_skip:
+    :return:
+    """
+    N_pass = 5
+    us = 10
+    win = 1.5 * us
+    win = win + 15 % 2
+    win_center = win // 2
+
+    CS = ft(im1) * np.conj(ft(im2))
+    shift = np.array([0, 0])
+    ny, nx = im1.shape
+
+    if not integer_skip:
+        a = np.fft.fftshift(np.abs(ift(CS)))
+        iy, ix = np.where(a == a.max())
+        shift = np.array([np.mean(iy), np.mean(ix)])
+        shift = shift - np.array([ny//2, nx//2])
+
+    # find fractional shift
+    p = nx // 2
+    x = np.reshape(np.arange(0, nx), (nx, 1))
+    q = ny // 2
+    y = np.arange(0, ny)
+
+    winx = np.arange(0, win)
+    winy = np.arange(0, win)
+    winy = np.reshape(winy, (len(winy), 1))
+
+    usfac = 1
+    for i in range(N_pass-1):
+        usfac *= us
+        shift = np.round(shift * usfac)
+        offset = win_center - shift
+
+        argx = 2 * np.pi / nx / usfac * np.outer(x, (winx - offset[1]))
+        kernel_x = np.exp(1j * argx)
+        argy = 2 * np.pi / ny / usfac * np.outer((winy - offset[0]), y)
+        kernel_y = np.exp(1j * argy)
+        out = np.dot(np.dot(kernel_y,  CS), kernel_x)
+        aout = np.abs(out)
+        ty, tx = np.where(aout == aout.max())
+        cc = np.mean(out[ty, tx])
+        shift_refine = np.array([np.mean(ty), np.mean(tx)])
+        shift_refine = shift_refine - win_center
+        shift = (shift + shift_refine) / usfac
+
+    sy, sx = shift
+    return sy, sx
+
+
+
 def epie_unknown_pos(patterns, guess_probe, guess_positions, shape_obj, guess_obj=None, n_iter=150, delta=2, nu=30,
                      beta=8e3, tau=0.2, a=1., b=1.):
     """

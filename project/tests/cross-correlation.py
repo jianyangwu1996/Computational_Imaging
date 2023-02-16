@@ -3,60 +3,58 @@ import numpy as np
 from numpy.fft import fft, fft2, ifft, ifft2
 import skimage.data as skdata
 from skimage.transform import resize
-from project.algorithms.utils import ft, ift, fft_correlate
+from project.algorithms.utils import ft, ift
 import matplotlib.pyplot as plt
+from project.algorithms.reconstruction import TransRefinement
+import cv2
 
 
-# 1D cross-correlation with fft
-a = np.random.random(9)
-b = np.random.random(9)
-sc = correlate(a, b, 'same', 'fft')
-Fa16_con = np.conj(fft(a, 16))
-Fb16 = fft(b, 16)
-fc16 = ifft(Fa16_con * Fb16).real
-fc = np.hstack((fc16, fc16))
-fc = fc[20:11:-1]
-np.allclose(fc, sc)
-
-# 2D cross-correlation with fft (random data)
-a = np.random.random((81, 81))
-b = np.random.random((81, 81))
-sc = correlate(a, b, 'same', 'fft')
-Fa16_con = np.conj(fft2(a, [128, 128]))
-Fb16 = fft2(b, [128, 128])
-fc16 = ifft2(Fa16_con * Fb16).real
-temp = np.hstack((fc16, fc16))
-temp = np.vstack((temp, temp))
-fc = temp[88:88+81, 88:88+81]
-fc = fc[::-1, ::-1]
-
-# 2D cross-correlation with fft (image)
-img1 = resize(skdata.camera(), (81, 81))
-img2 = resize(skdata.moon(), (81, 81))
-scc = correlate(img1, img2, 'same', 'fft')
-fimg1_con = np.conj(fft2(img1, [128, 128]))
-fimg2 = fft2(img2, [128, 128])
-Fcc = fimg2 * fimg1_con
-fcc = ifft2(Fcc).real
-temp = np.hstack((fcc, fcc))
-temp = np.vstack((temp, temp))
-fcc = temp[88:88+81, 88:88+81]
-fcc = fcc[::-1, ::-1]
-
-# 2D cross-correlation + upsampling with fft (image)
 img2 = resize(skdata.camera(), (81, 81))
-img1 = resize(skdata.moon(), (81, 81))
-scc = correlate(img1, img2, 'same', 'fft')
-fimg1_con = np.conj(ft(img1, [128, 128]))
-fimg2 = ft(img2, [128, 128])
-Fcc1 = fimg1_con * fimg2
-i = 50
-Fcc_pad = np.zeros((128*i, 128*i), dtype='complex')
-Fcc_pad[64*(i-1):128+64*(i-1), 64*(i-1):64*(i-1)+128] = Fcc1
-fcc = ift(Fcc_pad).real
-temp = np.hstack((fcc, fcc))
-temp = np.vstack((temp, temp))
-fcc = temp[88*i:(88*i+81*i), 88*i:(88*i+81*i)]
-fcc = fcc[::-1, ::-1]
-plt.imshow(fcc)
-plt.show()
+S = np.float32([[1, 0, -5.5], [0, 1, -10.5]])
+dst = cv2.warpAffine(img,S,(81,81))
+
+N_pass = 5
+    us = 10
+    win = 1.5 * us
+    win = win + 15 % 2
+    win_center = win // 2
+
+    CS = ft(im1) * np.conj(ft(im2))
+    shift = np.array([0, 0])
+    ny, nx = im1.shape
+
+    if not integer_skip:
+        a = np.fft.fftshift(np.abs(ift(CS)))
+        iy, ix = np.where(a == a.max())
+        shift = np.array([np.mean(iy), np.mean(ix)])
+        shift = shift - np.array([ny//2, nx//2])
+
+    # find fractional shift
+    p = nx // 2
+    x = np.reshape(np.arange(0, nx), (nx, 1))
+    q = ny // 2
+    y = np.arange(0, ny)
+
+    winx = np.arange(0, win)
+    winy = np.arange(0, win)
+    winy = np.reshape(winy, (len(winy), 1))
+
+    usfac = 1
+    for i in range(N_pass-1):
+        usfac *= us
+        shift = np.round(shift * usfac)
+        offset = win_center - shift
+
+        argx = 2 * np.pi / nx / usfac * np.outer(x, (winx - offset[1]))
+        kernel_x = np.exp(1j * argx)
+        argy = 2 * np.pi / ny / usfac * np.outer((winy - offset[0]), y)
+        kernel_y = np.exp(1j * argy)
+        out = np.dot(np.dot(kernel_y,  CS), kernel_x)
+        aout = np.abs(out)
+        ty, tx = np.where(aout == aout.max())
+        cc = np.mean(out[ty, tx])
+        shift_refine = np.array([np.mean(ty), np.mean(tx)])
+        shift_refine = shift_refine - win_center
+        shift = (shift + shift_refine) / usfac
+
+    sy, sx = shift
