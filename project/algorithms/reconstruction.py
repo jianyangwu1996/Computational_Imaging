@@ -128,25 +128,27 @@ def TransRefinement(im1, im2, integer_skip=False):
     CS = ft(im1) * np.conj(ft(im2))
     shift = np.array([0, 0])
     ny, nx = im1.shape
+    size = np.array([ny, nx])
 
     if not integer_skip:
-        a = np.fft.fftshift(np.abs(ift(CS)))
+        a = np.abs(ift(CS))
         iy, ix = np.where(a == a.max())
         shift = np.array([np.mean(iy), np.mean(ix)])
-        shift = shift - np.array([ny//2, nx//2])
+        shift = shift - (shift > (size // 2)) * size
 
     # find fractional shift
     p = nx // 2
-    x = np.reshape(np.arange(0, nx), (nx, 1))
+    x = np.hstack((np.arange(0, nx - p), np.arange(-p, 0)))
+    x = np.reshape(x, (nx, 1))
     q = ny // 2
-    y = np.arange(0, ny)
+    y = np.hstack((np.arange(0, ny - q), np.arange(-q, 0)))
 
     winx = np.arange(0, win)
     winy = np.arange(0, win)
     winy = np.reshape(winy, (len(winy), 1))
 
     usfac = 1
-    for i in range(N_pass-1):
+    for i in range(N_pass - 1):
         usfac *= us
         shift = np.round(shift * usfac)
         offset = win_center - shift
@@ -155,14 +157,13 @@ def TransRefinement(im1, im2, integer_skip=False):
         kernel_x = np.exp(1j * argx)
         argy = 2 * np.pi / ny / usfac * np.outer((winy - offset[0]), y)
         kernel_y = np.exp(1j * argy)
-        out = np.dot(np.dot(kernel_y,  CS), kernel_x)
+        out = np.dot(np.dot(kernel_y, CS), kernel_x)
         aout = np.abs(out)
         ty, tx = np.where(aout == aout.max())
         cc = np.mean(out[ty, tx])
         shift_refine = np.array([np.mean(ty), np.mean(tx)])
         shift_refine = shift_refine - win_center
         shift = (shift + shift_refine) / usfac
-
     sy, sx = shift
     return sy, sx
 
