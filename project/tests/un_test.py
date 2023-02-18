@@ -33,7 +33,7 @@ guess_obj = np.ones(obj.shape, dtype="complex")
 
 "initial value of parameters"
 a, b = 1.0, 1.0
-n_iter = 20
+n_iter = 200
 beta = np.array([[8000, 8000]]*len(positions)).astype('float32')
 
 "dataset need to be saved"
@@ -88,8 +88,8 @@ for n in range(n_iter):
             elif x >= guess_obj.shape[1]:
                 x = guess_obj.shape[1] - 1
             guess_positions[i] = np.array([y, x])
-        syn.append(syj)
-        sxn.append(sxj)
+            syn.append(syj)
+            sxn.append(sxj)
 
     if n >= 1:
         dpx.append(guess_positions[:, 1] - temp_pos[:, 1])   # the x-direction shift errors in the n-th iteration
