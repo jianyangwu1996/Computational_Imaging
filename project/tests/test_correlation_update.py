@@ -37,18 +37,18 @@ guess_probe = circ_aperture(box_shape, radius=0.4).astype('complex')
 guess_obj = np.ones(obj.shape, dtype="complex")
 
 guess_positions = ini_guess.copy()
-b = [400] * 2
+b = [600] * 2
 
 (K, L) = guess_probe.shape
 obj_pad = np.pad(guess_obj, ((K // 2, K // 2), (L // 2, L // 2)))
-shift = np.zeros((len(positions), 2, 2))
+position_errors = np.zeros((len(positions), 2, 2))
 
-loss, mpe, pe = [], [], 10.
+loss, mpe = [], []
 bx, by = [], []
 for n in range(200):
     loss_vals = []
     index = random.sample(range(0, len(positions)), len(positions))
-    shift[:, :, 0] = shift[:, :, 1].copy()
+    position_errors[:, :, 0] = position_errors[:, :, 1].copy()
     for i in index:
         x = guess_positions[i][1]
         y = guess_positions[i][0]
@@ -89,12 +89,12 @@ for n in range(200):
             elif x >= guess_obj.shape[1]:
                 x = guess_obj.shape[1] - 1
             guess_positions[i] = np.array([y, x])
-            shift[i, :, 1] = np.array([syj, sxj])
+            position_errors[i, :, 1] = np.array([syj, sxj])
 
     "update beta"
-    if n >= 4:
-        ky = corr(shift[:, 0, 0], shift[:, 0, 1])
-        kx = corr(shift[:, 1, 0], shift[:, 1, 1])
+    if n >= 100000:
+        ky = corr(position_errors[:, 0, 0], position_errors[:, 0, 1])
+        kx = corr(position_errors[:, 1, 0], position_errors[:, 1, 1])
 
         if ky >= 0.3:
             b[0] = int(b[0] * 1.1)
