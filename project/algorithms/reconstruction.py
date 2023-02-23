@@ -1,6 +1,7 @@
 import numpy as np
 from project.algorithms.utils import nrmse, ft, ift, corr
 from scipy.signal import correlate
+import random
 
 
 def update_obj(obj: np.ndarray, probe: np.ndarray, diff_psi: np.ndarray, learning_rate: float = 1.):
@@ -43,7 +44,7 @@ def update_probe(probe: np.ndarray, obj: np.ndarray, diff_psi: np.ndarray, learn
 
 
 def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, guess_obj=None, guess_probe=None,
-         track_error=False, obj_init=None, probe_init=None):
+         track_error=False, random_update=False):
     """
     Reconstruction using the extended pychograhical iterative engine (ePIE) with sliced patterns padding at the edge
     :param ptychogram: experimental diffraction patterns
@@ -55,8 +56,6 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
     :param guess_obj: initial guess object
     :param guess_probe: initial guess probe
     :param track_error: track the error of reconstruction process or not
-    :param obj_init: the real object
-    :param probe_init: real probe
     :return:
     """
 
@@ -75,9 +74,15 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
 
     for i in range(n_iter):
         loss_vals = []
-        for pattern, position in zip(ptychogram, positions):
-            x = position[1]
-            y = position[0]
+        if random_update is True:
+            index = random.sample(range(0, len(positions)), len(positions))
+        else:
+            index = np.arange(0, len(positions))
+
+        for i in index:
+            x = positions[i][1]
+            y = positions[i][0]
+            pattern = ptychogram[i]
 
             obj_scanned = recon_obj_pad[y:y + K, x:x + L]
             psi = obj_scanned * guess_probe
@@ -113,7 +118,7 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
 
 def TransRefinement(im1, im2, integer_skip=False):
     """
-    This is function is guided by Prof. Dr. Fucai Zhang
+    Translate from Prof. Dr. Fucai Zhang's matlab function
     :param im1:
     :param im2:
     :param integer_skip:

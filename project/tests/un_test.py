@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.cm as cm
-import matplotlib.colors as color
 import skimage.data as skdata
 from project.algorithms.simulation import dummy_object, ptychogram, mesh, illumination_beam
 from project.algorithms.utils import circ_aperture, normalize, nrmse, ft, ift, corr
@@ -34,6 +32,8 @@ guess_obj = np.ones(obj.shape, dtype="complex")
 "initial value of parameters"
 a, b = 1.0, 1.0
 n_iter = 200
+nu = 30
+tau = 0.3
 beta = np.array([[8000, 8000]]*len(positions)).astype('float32')
 
 "dataset need to be saved"
@@ -100,31 +100,73 @@ for n in range(n_iter):
         ky.append(corr(dpy[-1], dpy[-2]))
 
         "adjust beta"
-        if kx[-1] < -0.3:
-            beta[:, 1] *= 0.9
-        elif kx[-1] > 0.3:
-            beta[:, 1] *= 1.3
-
-        if ky[-1] < -0.3:
-            beta[:, 0] *= 0.9
-        elif ky[-1] > 0.3:
-            beta[:, 0] *= 1.3
-
-    "reposition IPs"
+        # if kx[-1] < -0.3:
+        #     beta[:, 1] *= 0.9
+        # elif kx[-1] > 0.3:
+        #     beta[:, 1] *= 1.3
+        #
+        # if ky[-1] < -0.3:
+        #     beta[:, 0] *= 0.9
+        # elif ky[-1] > 0.3:
+        #     beta[:, 0] *= 1.3
+        #
+        #     if (n + 1) > (n_IPs + nu):
+        #         n_IPs = n
+        #         IPs_index = np.where(NRMSEs > (min(NRMSEs) + tau))
+        #         IPs = np.array(guess_positions)[IPs_index]
+        #         CPs_index = np.where(NRMSEs <= (min(NRMSEs) + tau))
+        #         CPs = np.array(guess_positions)[CPs_index]
+        #
+        #         intensity_IPs = []
+        #         for IP in IPs:
+        #             x = IP[1]
+        #             y = IP[0]
+        #             obj_scanned = obj_pad[y:y + K, x:x + L]
+        #             psi = obj_scanned * guess_probe
+        #             Psi = ft(psi)
+        #             intensity_IPs.append(Psi**2)
+        #
+        #         intensity_CPs = []
+        #         for CP in CPs:
+        #             x = CP[1]
+        #             y = CP[0]
+        #             obj_scanned = obj_pad[y:y + K, x:x + L]
+        #             psi = obj_scanned * guess_probe
+        #             Psi = ft(psi)
+        #             intensity_CPs.append(Psi**2)
+        #
+        #         for i, iip in zip(IPs_index[0], intensity_IPs):
+        #             CCs = []
+        #             for icp in intensity_CPs:
+        #                 CC = corr(iip, icp)
+        #                 CCs.append(CC)
+        #             index = np.argmax(CCs)
+        #             guess_positions[i] = CPs[index]
+        #         beta[:, 0] = np.square(loss[n] / np.min(loss[n]) + 0.005)
+        #         beta[:, 0] = np.square(loss[n] / np.min(loss[n]) + 0.005)
 
 
     loss.append(NRMSEs)
+    guess_obj = obj_pad[K // 2:-K // 2 + 1, L // 2:-L // 2 + 1]
 
 plt.figure()
 plt.scatter(*np.transpose(positions))
 # plt.scatter(*np.transpose(positions_ori))
 plt.scatter(*np.transpose(guess_positions))
+plt.title('retrieved positions')
 # plt.xlim(0, 256)
 # plt.ylim(0, 256)
 plt.show()
 
-plt.figure()
-loss = np.array(loss)
-plt.plot(np.mean(loss, 1))
-plt.show()
+# plt.figure()
+# loss = np.array(loss)
+# plt.plot(np.mean(loss, 1))
+# plt.show()
 
+plt.title('correlation coefficient of two set of position errors')
+plt.plot(kx, label='kx')
+plt.plot(ky, label='ky')
+plt.xlabel('iteration')
+plt.ylabel('correlation coefficient')
+plt.legend()
+plt.show()
