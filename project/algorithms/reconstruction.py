@@ -1,6 +1,5 @@
 import numpy as np
 from project.algorithms.utils import nrmse, ft, ift, corr
-from scipy.signal import correlate
 import random
 
 
@@ -130,7 +129,7 @@ def TransRefinement(im1, im2, integer_skip=False):
     win = win + 15 % 2
     win_center = win // 2
 
-    CS = ft(im1) * np.conj(ft(im2))
+    CS = np.fft.fft2(im1) * np.conj(np.fft.fft2(im2))
     shift = np.array([0, 0])
     ny, nx = im1.shape
     size = np.array([ny, nx])
@@ -165,7 +164,6 @@ def TransRefinement(im1, im2, integer_skip=False):
         out = np.dot(np.dot(kernel_y, CS), kernel_x)
         aout = np.abs(out)
         ty, tx = np.where(aout == aout.max())
-        cc = np.mean(out[ty, tx])
         shift_refine = np.array([np.mean(ty), np.mean(tx)])
         shift_refine = shift_refine - win_center
         shift = (shift + shift_refine) / usfac

@@ -1,15 +1,7 @@
 import numpy as np
-import skimage.data as skdata
-from skimage.transform import resize
 from project.algorithms.utils import ft, ift
+from numpy.fft import fft2
 import matplotlib.pyplot as plt
-from project.algorithms.reconstruction import TransRefinement
-import cv2
-
-
-img = resize(skdata.camera(), (161, 161))
-S = np.float32([[1, 0, -2], [0, 1, 2]])
-dst = cv2.warpAffine(img, S, (161, 161))
 
 N_pass = 5
 us = 10
@@ -17,7 +9,7 @@ win = 1.5 * us
 win = win + 15 % 2
 win_center = win // 2
 
-CS = ft(img) * np.conj(ft(dst))
+CS = fft2(lena) * np.conj(fft2(shift))
 shift = np.array([0, 0])
 ny, nx = img.shape
 size = np.array([ny, nx])
@@ -40,7 +32,7 @@ winx = np.arange(0, win)
 winy = np.arange(0, win)
 winy = np.reshape(winy, (len(winy), 1))
 
-usfac = 1
+usfac = 1.
 for i in range(N_pass-1):
     usfac *= us
     shift = np.round(shift * usfac)
