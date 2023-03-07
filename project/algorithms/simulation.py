@@ -2,8 +2,7 @@ import numpy as np
 import skimage.data as skdata
 from skimage.transform import resize
 from scipy.signal import convolve2d
-from project.algorithms.utils import ft, normalize
-from project.algorithms.utils import circ_aperture, circ_gauss
+from project.algorithms.utils import ft, normalize, frashift, circ_aperture, circ_gauss
 
 
 def dummy_object(n_periods=1, intensity=None, phase=None, output_shape=None):
@@ -126,7 +125,7 @@ def mesh(object_size: tuple, radius, overlap: float, n: int, error: int):
     return positions
 
 
-def ptychogram(obj, probe, position):
+def ptychogram_pad(obj, probe, position):
     """
     pad half shape of probe to object and then produce ptychogram with slicing_based scanning
     :param obj: the experiment object
@@ -143,6 +142,31 @@ def ptychogram(obj, probe, position):
 
     obj_slice = obj[y:y+Y, x:x+Y]
     esw = obj_slice * probe
+    pattern = ft(esw)
+    data = np.square(np.abs(pattern))
+
+    return data
+
+
+def ptychogram_shift(obj, probe, position):
+    """
+    produce ptychogram with object shift
+    :param obj: the experiment object
+    :param probe: the illumination probe
+    :param position: the position of scanning area
+    :return: intensity of diffraction pattern
+    """
+
+    K, L = probe.shape
+    M, N = obj.shape
+    y, x = position
+
+    # shift the scan points to the center of the object
+    shift = -np.array([y - M // 2, x - N // 2]).astype('float')
+    obj_shift = frashift(obj, shift)
+    obj_scanned = obj_shift[M // 2 - K // 2: M // 2 + K // 2 + 1, N // 2 - L // 2: N // 2 + L // 2 + 1]
+
+    esw = obj_scanned * probe
     pattern = ft(esw)
     data = np.square(np.abs(pattern))
 

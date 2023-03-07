@@ -1,5 +1,6 @@
 import numpy as np
 from project.algorithms.utils import nrmse, ft, ift, corr
+from numpy.fft import fft2, ifft2
 import random
 
 
@@ -129,13 +130,13 @@ def TransRefinement(im1, im2, integer_skip=False):
     win = win + 15 % 2
     win_center = win // 2
 
-    CS = np.fft.fft2(im1) * np.conj(np.fft.fft2(im2))
+    CS = fft2(im1) * np.conj(fft2(im2))
     shift = np.array([0, 0])
     ny, nx = im1.shape
     size = np.array([ny, nx])
 
     if not integer_skip:
-        a = np.abs(ift(CS))
+        a = np.abs(ifft2(CS))
         iy, ix = np.where(a == a.max())
         shift = np.array([np.mean(iy), np.mean(ix)])
         shift = shift - (shift > (size // 2)) * size
