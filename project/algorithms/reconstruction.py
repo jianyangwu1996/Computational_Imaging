@@ -15,10 +15,6 @@ def update_obj(obj: np.ndarray, probe: np.ndarray, diff_psi: np.ndarray, learnin
     """
 
     obj += learning_rate * np.conjugate(probe) / np.square(np.abs(probe)).max() * diff_psi
-    modulus = np.abs(obj)
-    phase = np.angle(obj)
-    toohigh = modulus > 1
-    obj[toohigh] = 1 * np.exp(1j * phase[toohigh])
 
     return obj
 
@@ -34,11 +30,6 @@ def update_probe(probe: np.ndarray, obj: np.ndarray, diff_psi: np.ndarray, learn
     """
 
     probe += learning_rate * np.conjugate(obj) / np.square(np.abs(obj)).max() * diff_psi
-
-    modulus = np.abs(probe)
-    phase = np.angle(probe)
-    toohigh = modulus > 1
-    probe[toohigh] = 1 * np.exp(1j * phase[toohigh])
 
     return probe
 
