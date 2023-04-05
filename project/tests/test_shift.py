@@ -60,22 +60,3 @@ def TransRefinement1(im1, im2, integer_skip=False):
     sy, sx = shift
     return sy, sx
 
-
-# lena = np.array(plt.imread('./project/tests/lena.tif'))
-# (K, L) = (161, 161)
-# M, N = lena.shape
-# p = -np.array([127.5 - M//2, 128.3 - N//2]).astype('float')
-# shift = frashift(lena, p)
-# obj_shift = shift[M//2-K//2:M//2+K//2+1, N//2-L//2:N//2+L//2+1]
-# pad = np.pad(lena, ((K // 2, K // 2), (L // 2, L // 2)))
-# obj_pad = pad[34:34 + K, 28:28 + L]
-# fig, axes = plt.subplots(1, 2)
-# axes[0].imshow(np.abs(obj_shift))
-# axes[1].imshow(np.abs(obj_pad))
-# plt.show()
-#
-# lena = np.fft.fftshift(lena)
-# shift = np.fft.fftshift(shift)
-#
-# syj, sxj = TransRefinement(lena, shift, integer_skip=False)
-# syj1, sxj1 = TransRefinement1(lena, shift)
