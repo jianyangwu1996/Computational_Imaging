@@ -1,5 +1,5 @@
 import numpy as np
-from project.algorithms.utils import nrmse, ft, ift, corr
+from project.algorithms.utils import nrmse, ft, ift, corr, frashift
 from numpy.fft import fft2, ifft2
 import random
 
@@ -35,7 +35,7 @@ def update_probe(probe: np.ndarray, obj: np.ndarray, diff_psi: np.ndarray, learn
 
 
 def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, guess_obj=None, guess_probe=None,
-         track_error=False, random_update=False):
+         track_error=False):
     """
     Reconstruction using the extended pychograhical iterative engine (ePIE) with sliced patterns padding at the edge
     :param ptychogram: experimental diffraction patterns
@@ -56,26 +56,20 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
         guess_obj = np.array(guess_obj, dtype="complex")
 
     (K, L) = guess_probe.shape
-    recon_obj = guess_obj.copy()
-    recon_obj_pad = np.pad(recon_obj, ((K // 2, K // 2), (L // 2, L // 2)))
-
-    # corr_intensity_obj = [0]
-    # corr_intensity_probe = [0]
+    (M, N) = guess_obj.shape
     loss = []
+    index = random.sample(range(0, len(positions)), len(positions))
 
-    for i in range(n_iter):
+    for n in range(n_iter):
         loss_vals = []
-        if random_update is True:
-            index = random.sample(range(0, len(positions)), len(positions))
-        else:
-            index = np.arange(0, len(positions))
-
         for i in index:
             x = positions[i][1]
             y = positions[i][0]
+            shift = -np.array([y - M // 2, x - N // 2]).astype('float')
+            guess_obj = frashift(guess_obj, shift)
+            obj_scanned = guess_obj[M // 2 - K // 2: M // 2 + K // 2 + 1, N // 2 - L // 2: N // 2 + L // 2 + 1]
             pattern = ptychogram[i]
 
-            obj_scanned = recon_obj_pad[y:y + K, x:x + L]
             psi = obj_scanned * guess_probe
             PSI = ft(psi)
 
@@ -87,24 +81,18 @@ def epie(ptychogram: np.ndarray, positions, shape_obj, n_iter=100, a=1, b=1, gue
             # update guess function
             diff_psi = psi_correct - psi
             guess_obj_old = np.copy(obj_scanned)
-            recon_obj_slice = update_obj(obj_scanned, guess_probe, diff_psi, learning_rate=a)
-            recon_obj_pad[y:y + K, x:x + L] = recon_obj_slice
+            obj_scanned = update_obj(obj_scanned, guess_probe, diff_psi, learning_rate=a)
+            guess_obj[M//2 - K//2:M//2 + K//2+1, N//2-L//2:N//2+L//2+1] = obj_scanned
+            guess_obj = frashift(guess_obj, -shift)
             guess_probe = update_probe(guess_probe, guess_obj_old, diff_psi, learning_rate=b)
 
             loss_vals.append(nrmse(np.abs(PSI), pattern))
         loss.append(np.mean(loss_vals))
 
-        # if track_error is True:
-        #     recon_obj = recon_obj_pad[K // 2:-K // 2 + 1, L // 2:-L // 2 + 1]
-        #     corr_intensity_obj.append(corr(np.abs(obj_init), np.abs(recon_obj)))
-        #     corr_intensity_probe.append(corr(np.abs(probe_init), np.abs(guess_probe)))
-
-    recon_obj = recon_obj_pad[K // 2:-K // 2 + 1, L // 2:-L // 2 + 1]
-
     if track_error is True:
-        return recon_obj, guess_probe, loss
+        return guess_obj, guess_probe, loss
     else:
-        return recon_obj, guess_probe
+        return guess_obj, guess_probe
 
 
 def TransRefinement(im1, im2, integer_skip=False):
